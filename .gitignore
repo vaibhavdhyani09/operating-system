@@ -1,0 +1,5 @@
+*.o
+*.elf
+*.iso
+iso/boot/kernel.elf
+iso/boot/grub/stage2_eltorito

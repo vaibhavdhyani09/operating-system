@@ -1,14 +1,24 @@
 global loader
-MAGIC_NUMBER equ 0x1BADB002
-FLAGS equ 0x0
-CHECKSUM equ -MAGIC_NUMBER
+extern kmain
+
+MAGIC_NUMBER      equ 0x1BADB002
+FLAGS             equ 0x0
+CHECKSUM          equ -MAGIC_NUMBER
+KERNEL_STACK_SIZE equ 4096
+
+section .bss
+    align 4
+    kernel_stack:
+        resb KERNEL_STACK_SIZE
+
 section .text
-align 4
-	dd MAGIC_NUMBER
-	dd FLAGS
-	dd CHECKSUM
+    align 4
+    dd MAGIC_NUMBER
+    dd FLAGS
+    dd CHECKSUM
+
 loader:
-	mov eax, 0xCAFEBABE
-	xchg bx, bx
-.loop:
-	jmp .loop
+    mov esp, kernel_stack + KERNEL_STACK_SIZE  ; set up the stack
+    call kmain                                  ; jump into C
+    .loop:
+        jmp .loop

@@ -1,10 +1,15 @@
-# Hello Cafebabe OS
+# DryNavy OS
 
-A minimal x86 operating system kernel built from scratch, following The Little Book About OS Development by Erik Helin and Adam Renberg.
+A minimal x86 operating system kernel built from scratch, following 
+The Little Book About OS Development by Erik Helin and Adam Renberg.
 
 ## What it does
 
-Boots via GRUB and writes 0xCAFEBABE to the EAX register, proving the entire toolchain and boot process works correctly.
+Boots via GRUB and displays text on screen using a custom framebuffer 
+driver written entirely from scratch. Hardware communication is done 
+manually through memory mapped I/O and I/O ports with no libraries or 
+shortcuts. Serial port logging is also set up to redirect kernel output 
+to a file for debugging.
 
 ![QEMU Booting](imgs/qemu.png)
 
@@ -13,6 +18,7 @@ Boots via GRUB and writes 0xCAFEBABE to the EAX register, proving the entire too
 ## Tools Required
 
 - NASM - assembler
+- GCC - C compiler
 - GNU LD - linker
 - genisoimage - ISO image creation
 - QEMU - x86 emulator
@@ -20,27 +26,19 @@ Boots via GRUB and writes 0xCAFEBABE to the EAX register, proving the entire too
 ## Build
 
 ```bash
-nasm -f elf32 loader.s -o loader.o
-ld -T link.ld -melf_i386 loader.o -o kernel.elf
-cp kernel.elf iso/boot/kernel.elf
-genisoimage -R -b boot/grub/stage2_eltorito -no-emul-boot \
-    -boot-load-size 4 -A os -input-charset utf8 -quiet \
-    -boot-info-table -o os.iso iso
+make
 ```
 
 ## Run
 
 ```bash
-qemu-system-i386 -cdrom os.iso -display gtk
+make run
 ```
 
-## Verify
+## Clean
 
 ```bash
-qemu-system-i386 -cdrom os.iso -monitor stdio
+make clean
 ```
-Then type `info registers` and check that EAX=CAFEBABE.
 
-## Reference
 
-The Little Book About OS Development - https://littleosbook.github.io

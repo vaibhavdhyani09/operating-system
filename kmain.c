@@ -1,18 +1,19 @@
+#include "gdt.h"
 #include "fb.h"
 
-int kmain(void)
+void kmain(void)
 {
-    char *str = "It finally works! @drynavy signing off.";
-    
+    /* Clear the screen first */
+    fb_clear();
 
-    /* count length of string */
-    unsigned int len = 0;
-    while(str[len] != '\0') {
-        len++;
-    }
+    /* Set up segmentation */
+    gdt_init();
 
-    /* write to screen */
-    fb_write(str, len);
+    /* Confirm it worked with a message */
+    fb_write("GDT initialised successfully!", 29);
+    fb_write("\n", 1);
+    fb_write("Segmentation is set up.", 23);
 
-    return 0;
+    /* Loop forever */
+    for(;;);
 }

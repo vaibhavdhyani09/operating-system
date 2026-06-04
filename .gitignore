@@ -1,6 +1,6 @@
 *.o
-*.elf
-*.iso
-*.out
-iso/boot/grub/stage2_eltorito
-iso/boot/kernel.elf
+kernel.elf
+os.iso
+int.log
+*.log
+EOF

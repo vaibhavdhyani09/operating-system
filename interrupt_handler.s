@@ -23,3 +23,4 @@ common_interrupt_handler:
     no_error_code_interrupt_handler 0
     no_error_code_interrupt_handler 1
     no_error_code_interrupt_handler 33
+section .note.GNU-stack noalloc noexec nowrite progbits

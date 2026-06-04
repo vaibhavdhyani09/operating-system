@@ -17,8 +17,12 @@ program: program.s
 	nasm -f bin program.s -o program
 
 run: kernel.elf program
-	qemu-system-i386 -kernel kernel.elf -initrd program
-
+	qemu-system-i386 \
+	    -kernel kernel.elf \
+	    -initrd program \
+	    -append "" \
+	    -m 32 \
+	    -vga std
 %.o: %.c
 	$(CC) $(CFLAGS) $< -o $@
 

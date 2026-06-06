@@ -1,5 +1,5 @@
 OBJECTS = loader.o io.o gdt.o gdt_asm.o load_idt.o interrupt_handlers.o \
-          idt.o pic.o keyboard.o fb.o interrupt_handler.o kmain.o
+          idt.o pic.o keyboard.o fb.o interrupt_handler.o paging.o pmm.o kmain.o
 
 CC      = gcc
 CFLAGS  = -m32 -nostdlib -nostdinc -fno-builtin -fno-stack-protector \
@@ -22,7 +22,9 @@ run: kernel.elf program
 	    -initrd program \
 	    -append "" \
 	    -m 32 \
-	    -vga std
+	    -vga std \
+	    -serial stdio
+
 %.o: %.c
 	$(CC) $(CFLAGS) $< -o $@
 

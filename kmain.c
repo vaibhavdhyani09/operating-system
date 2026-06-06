@@ -6,32 +6,21 @@
 #include "io.h"
 #include "paging.h"
 #include "pmm.h"
+#include "usermode.h"
+#include "tss.h"
 
-static void serial_write_str(const char *str)
+static void memcpy_local(unsigned char *dst, unsigned char *src,
+                         unsigned int len)
 {
-    while (*str) {
-        while (!(inb(0x3F8 + 5) & 0x20));
-        outb(0x3F8, *str++);
-    }
+    unsigned int i;
+    for (i = 0; i < len; i++)
+        dst[i] = src[i];
 }
 
-/* simple hex printer for serial, to verify addresses */
-static void serial_write_hex(unsigned int n)
-{
-    char buf[11];
-    int i;
-    buf[0] = '0'; buf[1] = 'x';
-    for (i = 9; i >= 2; i--) {
-        int nibble = n & 0xF;
-        buf[i] = (nibble < 10) ? ('0' + nibble) : ('a' + nibble - 10);
-        n >>= 4;
-    }
-    buf[10] = '\0';
-    serial_write_str(buf);
-}
-
-/* kernel_end is exported by the linker script */
 extern unsigned int kernel_end;
+
+/* kernel stack — TSS esp0 points to the top of this */
+static unsigned int kernel_stack[1024];
 
 void kmain(unsigned int ebx)
 {
@@ -43,51 +32,41 @@ void kmain(unsigned int ebx)
     idt_init();
     paging_init();
 
-    /* Chapter 10: init page frame allocator */
     unsigned int kernel_phys_end = (unsigned int) &kernel_end;
-    pmm_init(mbinfo->mem_upper, kernel_phys_end);
 
-    serial_write_str("paging enabled\n");
-    serial_write_str("pmm initialised\n");
+    unsigned int *mods      = (unsigned int *) mbinfo->mods_addr;
+    unsigned int prog_start = mods[0];
+    unsigned int prog_end   = mods[1];
+    unsigned int prog_size  = prog_end - prog_start;
 
-    /* test: allocate 3 frames and print their addresses */
-    unsigned int f1 = pmm_alloc();
-    unsigned int f2 = pmm_alloc();
-    unsigned int f3 = pmm_alloc();
+    pmm_init(mbinfo->mem_upper, kernel_phys_end, prog_end);
 
-    serial_write_str("frame1: "); serial_write_hex(f1); serial_write_str("\n");
-    serial_write_str("frame2: "); serial_write_hex(f2); serial_write_str("\n");
-    serial_write_str("frame3: "); serial_write_hex(f3); serial_write_str("\n");
+    /* set up TSS so inter-privilege interrupts have a kernel stack */
+    unsigned int kernel_esp = (unsigned int) kernel_stack + sizeof(kernel_stack);
+    tss_init(kernel_esp);
 
-    /* free frame2 and reallocate - should get same address back */
-    pmm_free(f2);
-    unsigned int f2b = pmm_alloc();
-    serial_write_str("frame2 after free+alloc: ");
-    serial_write_hex(f2b);
-    serial_write_str("\n");
-
-    serial_write_str("kmain started\n");
+    extern void tss_load(void);
+    tss_load();
 
     if (mbinfo->mods_count != 1) {
-        serial_write_str("ERROR: module not loaded\n");
-        fb_write("ERROR: module not loaded!", 25, FB_WHITE, FB_BLACK);
-        __asm__ __volatile__("sti");
+        fb_write("ERROR: no module!", 17, FB_WHITE, FB_BLACK);
         while (1) {}
-        return;
     }
 
-    serial_write_str("module found, jumping\n");
-    fb_write("PMM OK. Module found! Jumping...", 32, FB_WHITE, FB_BLACK);
-    fb_write("  |  Type below:", 16, FB_WHITE, FB_BLACK);
+    /* allocate page frames for user code and stack */
+    unsigned int code_frame  = pmm_alloc();
+    unsigned int stack_frame = pmm_alloc();
+    unsigned int user_esp    = stack_frame + 4096;
 
-    __asm__ __volatile__("sti");
+    /* copy the user program into its code frame */
+    memcpy_local((unsigned char *) code_frame,
+                 (unsigned char *) prog_start,
+                 prog_size);
 
-    unsigned int *mods = (unsigned int *) mbinfo->mods_addr;
-    unsigned int program_addr = mods[0];
+    fb_write("Entering user mode...", 21, FB_WHITE, FB_BLACK);
 
-    typedef void (*call_module_t)(void);
-    call_module_t start_program = (call_module_t) program_addr;
-    start_program();
+    /* drop to PL3 — never returns */
+    enter_usermode(code_frame, user_esp);
 
     while (1) {}
 }

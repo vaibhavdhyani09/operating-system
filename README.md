@@ -1,6 +1,3 @@
-
-raw
-Readme · MD
 # DryNavy OS
  
 A minimal x86 operating system kernel built from scratch, following

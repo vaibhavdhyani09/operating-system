@@ -17,7 +17,7 @@ void interrupt_handler(unsigned int interrupt)
         if (code < 128) {
             char c = scancode_ascii[code];
             if (c) {
-                fb_write(&c, 1, FB_BLACK, FB_WHITE);
+                fb_write(&c, 1, FB_WHITE, FB_BLACK);
             }
         }
         pic_acknowledge(interrupt);

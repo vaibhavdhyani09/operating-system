@@ -13,7 +13,6 @@ AS      = nasm
 ASFLAGS = -f elf32
 
 # --- all kernel objects that get linked into kernel.elf ---
-# NOTE: verify this list matches the .o files you actually have.
 OBJECTS = loader.o kmain.o \
           fb.o gdt.o gdt_asm.o idt.o load_idt.o \
           interrupt_handlers.o interrupt_handler.o \
@@ -22,7 +21,7 @@ OBJECTS = loader.o kmain.o \
           fs.o vfs.o
 
 # ============================================================
-#  Default target: build the bootable ISO
+#  Default target
 # ============================================================
 all: os.iso
 
@@ -47,9 +46,6 @@ load_idt.o: load_idt.s
 interrupt_handlers.o: interrupt_handlers.s
 	$(AS) $(ASFLAGS) interrupt_handlers.s -o interrupt_handlers.o
 
-interrupt_handler.o: interrupt_handler.s
-	$(AS) $(ASFLAGS) interrupt_handler.s -o interrupt_handler.o
-
 io.o: io.s
 	$(AS) $(ASFLAGS) io.s -o io.o
 
@@ -63,8 +59,7 @@ paging.o: paging.s
 	$(AS) $(ASFLAGS) paging.s -o paging.o
 
 # ============================================================
-#  C object rules (.c -> .o)
-#  These use the kernel CFLAGS (note the trailing -c: compile only)
+#  C object rules (.c -> .o)   (CFLAGS ends in -c: compile only)
 # ============================================================
 kmain.o: kmain.c
 	$(CC) $(CFLAGS) kmain.c -o kmain.o
@@ -101,23 +96,19 @@ vfs.o: vfs.c
 
 # ============================================================
 #  Host-side file system build tool (NOT kernel code)
-#  Built with the system gcc, full hosted environment.
 # ============================================================
 mkfs: mkfs.c
 	gcc -Wall -Wextra -o mkfs mkfs.c
 
 # ============================================================
-#  Build the read-only file system image.
-#  Add more files after hello.txt to include them in the image.
+#  Build the read-only file system image
+#  Add more files after hello.txt to include them
 # ============================================================
 fs.img: mkfs hello.txt
 	./mkfs fs.img hello.txt
 
 # ============================================================
-#  Assemble the bootable ISO
-#  - kernel.elf  -> /boot/kernel.elf
-#  - fs.img      -> /modules/fs.img   (the single GRUB module)
-#  - grub.cfg    -> /boot/grub/grub.cfg
+#  Assemble the bootable ISO (BIOS-only, no EFI hybrid)
 # ============================================================
 os.iso: kernel.elf fs.img grub.cfg
 	mkdir -p iso/boot/grub
@@ -125,13 +116,13 @@ os.iso: kernel.elf fs.img grub.cfg
 	cp kernel.elf iso/boot/kernel.elf
 	cp fs.img     iso/modules/fs.img
 	cp grub.cfg   iso/boot/grub/grub.cfg
-	grub-mkrescue -o os.iso iso
+	grub-mkrescue -o os.iso iso -- -as mkisofs -no-emul-boot
 
 # ============================================================
-#  Run in QEMU
+#  Run in QEMU (boot from CD only, no reboot cycling)
 # ============================================================
 run: os.iso
-	qemu-system-i386 -cdrom os.iso -boot d
+	qemu-system-i386 -cdrom os.iso -boot d -no-reboot
 
 # ============================================================
 #  Clean

@@ -21,8 +21,6 @@ struct tss_entry {
 
 static struct tss_entry tss;
 
-/* kernel stack used when CPU switches back to ring 0 */
-static unsigned int kernel_stack[1024];
 
 void tss_init(unsigned int kernel_esp)
 {

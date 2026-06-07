@@ -1,4 +1,4 @@
-# DryNavy OS
+# myOS
 
 A minimal x86 operating system kernel built from scratch, following
 The Little Book About OS Development by Erik Helin and Adam Renberg.
